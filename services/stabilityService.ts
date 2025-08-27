@@ -1,11 +1,10 @@
 const API_KEY = process.env.STABILITY_API_KEY;
-const API_HOST = 'https://api.stability.ai';
 
 if (!API_KEY) {
   throw new Error("A variável de ambiente STABILITY_API_KEY não está definida.");
 }
 
-// Mapeia os estilos para os estilos que a Stability AI entende
+// Mapeia os estilos para os presets que a nova API entende
 const stylePresetMap: { [key: string]: string } = {
   "Realista": "photographic",
   "Cartoon": "comic-book",
@@ -19,48 +18,52 @@ const stylePresetMap: { [key: string]: string } = {
 export async function generateImage(prompt: string, aspectRatio: string, style: string): Promise<string> {
   const style_preset = stylePresetMap[style] || 'photographic';
 
+  const formData = new FormData();
+  formData.append('prompt', prompt);
+  formData.append('aspect_ratio', aspectRatio);
+  formData.append('output_format', 'png'); // Pedimos PNG como formato de saída
+  formData.append('style_preset', style_preset);
+
   const response = await fetch(
-    `${API_HOST}/v1/generation/stable-diffusion-v1-6`,
+    // URL ATUALIZADA para o novo modelo "Stable Image Core"
+    `https://api.stability.ai/v2beta/stable-image/generate/core`, 
     {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
+        // O cabeçalho 'Content-Type' não é necessário com FormData
+        Accept: 'application/json', // Pedimos a resposta em JSON
         Authorization: `Bearer ${API_KEY}`,
       },
-      body: JSON.stringify({
-        text_prompts: [
-          {
-            text: prompt,
-          },
-        ],
-        cfg_scale: 7,
-        aspect_ratio: aspectRatio,
-        height: undefined, // Deixe a API decidir a melhor resolução com base no aspect ratio
-        width: undefined,
-        samples: 1,
-        steps: 30,
-        style_preset: style_preset,
-      }),
+      body: formData, // Usamos FormData para a nova API
     }
   );
 
   if (!response.ok) {
-    throw new Error(`Erro na API da Stability: ${await response.text()}`);
+    const errorText = await response.text();
+    // Tenta extrair uma mensagem de erro mais clara do JSON, se possível
+    try {
+        const errorJson = JSON.parse(errorText);
+        if (errorJson && errorJson.errors) {
+            throw new Error(`Erro na API da Stability: ${errorJson.errors[0]}`);
+        }
+    } catch (e) {
+        // Se não for JSON, joga o erro bruto
+        throw new Error(`Erro na API da Stability: ${errorText}`);
+    }
   }
 
   const responseJSON = await response.json();
 
-  if (responseJSON.artifacts && responseJSON.artifacts.length > 0) {
-    return responseJSON.artifacts[0].base64;
+  // A resposta da nova API tem uma estrutura diferente
+  if (responseJSON.image) {
+    // A imagem já vem em base64
+    return responseJSON.image;
   }
 
   throw new Error("Nenhuma imagem foi retornada pela API.");
 }
 
-
-// A geração com imagem de referência é um recurso mais avançado.
-// Vamos manter a simplicidade para garantir que funcione.
+// Mantemos esta função simples
 export async function generateImageWithImage(prompt: string, imageFiles: File[], aspectRatio: string, style: string): Promise<string> {
     console.warn("generateImageWithImage não é suportado por esta implementação da Stability, usando apenas o prompt de texto.");
     return generateImage(prompt, aspectRatio, style);
