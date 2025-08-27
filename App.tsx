@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { generateImage, generateImageWithImage } from './services/geminiService';
+import { generateImage, generateImageWithImage } from './services/stabilityService';
 import { Spinner } from './components/Spinner';
 import { UploadIcon, DownloadIcon, SparklesIcon, XCircleIcon, PhotoIcon } from './components/icons';
 import { auth, handleLogin, handleLogout } from './services/firebase'; // Importa do firebase
