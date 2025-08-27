@@ -5,7 +5,7 @@ export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     return {
       define: {
-        'process.env.STABILITY_API_KEY': JSON.stringify(env.STABILITY_API_KEY)
+        'process.env.HUGGINGFACE_API_KEY': JSON.stringify(env.HUGGINGFACE_API_KEY)
       },
       resolve: {
         alias: {
